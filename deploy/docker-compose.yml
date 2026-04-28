@@ -1,17 +1,17 @@
 # ezredbiom production stack — single-VM deployment.
 #
 # Run from the repo root:
-#   docker compose -f ezredbiom/Experiment/docker-compose.yml build
-#   docker compose -f ezredbiom/Experiment/docker-compose.yml up -d
+#   docker compose -f deploy/docker-compose.yml build
+#   docker compose -f deploy/docker-compose.yml up -d
 #
 # Build context is the repo root so the Dockerfile can COPY both
-# ezredbiom/Experiment/* and (if ever needed) top-level files.
+# ezredbiom/Experiment/* and top-level files (qiita_db/, qiita_core/).
 
 services:
   app:
     build:
-      context: ../../          # repo root
-      dockerfile: ezredbiom/Experiment/Dockerfile
+      context: ../             # repo root
+      dockerfile: deploy/Dockerfile
     image: ezredbiom:latest
     container_name: ezredbiom-app
     env_file:

@@ -37,10 +37,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# System deps: psycopg2 build, git for editable qiita-spots install,
-# build-essential for any C extensions in scientific deps.
+# System deps: psycopg2 build, build-essential for any C extensions in
+# scientific deps.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      git \
       gcc \
       libpq-dev \
       build-essential \
@@ -49,9 +48,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Install Python deps first for layer caching.
-COPY ezredbiom/Experiment/requirements.prod.txt /app/requirements.prod.txt
+COPY deploy/requirements.prod.txt /app/requirements.prod.txt
 RUN pip install --upgrade pip setuptools wheel && \
     pip install -r /app/requirements.prod.txt
+
+# Copy vendored qiita packages so backend imports resolve.
+COPY qiita_db/   /app/qiita_db/
+COPY qiita_core/ /app/qiita_core/
+ENV PYTHONPATH=/app
 
 # Copy backend source.
 COPY ezredbiom/Experiment/backend/ /app/backend/
@@ -60,8 +64,8 @@ COPY ezredbiom/Experiment/backend/ /app/backend/
 COPY --from=frontend /build/frontend/ /app/frontend/
 
 # Production scripts/configs.
-COPY ezredbiom/Experiment/start_prod.sh /app/start_prod.sh
-COPY ezredbiom/Experiment/gunicorn_conf.py /app/gunicorn_conf.py
+COPY deploy/start_prod.sh /app/start_prod.sh
+COPY deploy/gunicorn_conf.py /app/gunicorn_conf.py
 RUN chmod +x /app/start_prod.sh
 
 # SQLite store lives on a mounted volume in production.
