@@ -22,6 +22,24 @@ htmlcov/
 # Jupyter
 .ipynb_checkpoints/
 
-# SQLite WAL/SHM
+# SQLite (incl. WAL/SHM)
+*.db
 *.db-shm
 *.db-wal
+
+# Node / compiled frontend
+node_modules/
+*.compiled.js
+
+# Local secrets and operator-supplied files
+secrets/
+*.local.conf
+
+# Editor / OS junk
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Redis dump artifact
+dump.rdb
