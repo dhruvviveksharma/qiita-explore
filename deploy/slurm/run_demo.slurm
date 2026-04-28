@@ -59,7 +59,7 @@ WEB_PORT=$(pick_port)
 # ------------------------------------------------------------
 # 4. Pull (or use cached) the Apptainer SIF image
 # ------------------------------------------------------------
-IMAGE_URL="${IMAGE_URL:-docker://ghcr.io/jbk708/qiita-explore:latest}"
+IMAGE_URL="${IMAGE_URL:-docker://ghcr.io/dhruvviveksharma/qiita-explore:latest}"
 SIF_PATH="${SIF_CACHE_DIR:-$HOME/.apptainer-cache}/qiita-explore.sif"
 mkdir -p "$(dirname "$SIF_PATH")"
 

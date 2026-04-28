@@ -2,7 +2,7 @@
 
 This directory contains a SLURM batch script for running a live demo of
 **qiita-explore** on a UCSD SLURM cluster (e.g., barnacle, triton, or expanse).
-The script pulls `ghcr.io/jbk708/qiita-explore:latest` as an Apptainer SIF,
+The script pulls `ghcr.io/dhruvviveksharma/qiita-explore:latest` as an Apptainer SIF,
 starts gunicorn (Flask API) and a static file server (frontend) on
 randomly-chosen ports on the compute node, and prints a ready-to-paste SSH
 reverse-tunnel command so you can reach the app from your laptop. This is a
