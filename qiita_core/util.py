@@ -14,7 +14,10 @@ from git.exc import InvalidGitRepositoryError
 from qiita_core.qiita_settings import qiita_config, r_client
 from qiita_db.environment_manager import reset_test_database
 from qiita_db.sql_connection import TRN
-from qiita_pet import __version__ as qiita_pet_lib_version
+try:
+    from qiita_pet import __version__ as qiita_pet_lib_version
+except ImportError:
+    qiita_pet_lib_version = "vendored"
 
 REDIS_QIITA_GIT_SHA_KEY = "qiita-git-sha"
 

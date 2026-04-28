@@ -1,11 +1,16 @@
 from setuptools import setup, find_packages
 
+def _is_setuptools_compatible(line):
+    line = line.strip()
+    if not line or line.startswith("#"):
+        return False
+    if line.startswith("-"):
+        return False
+    return True
+
+
 with open("requirements.txt") as f:
-    install_requires = [
-        line.strip()
-        for line in f
-        if line.strip() and not line.startswith("#")
-    ]
+    install_requires = [line.strip() for line in f if _is_setuptools_compatible(line)]
 
 setup(
     name="qiita-explore",

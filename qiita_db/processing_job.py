@@ -6,7 +6,8 @@
 # The full license is in the file LICENSE, distributed with this software.
 # -----------------------------------------------------------------------------
 
-from collections import Iterable, defaultdict
+from collections import defaultdict
+from collections.abc import Iterable
 from datetime import datetime, timedelta
 from itertools import chain
 from json import dumps, loads
