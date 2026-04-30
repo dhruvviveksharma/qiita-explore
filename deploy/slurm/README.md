@@ -93,6 +93,12 @@ normal.
 | `http://localhost:8080/` | React/static frontend |
 | `http://localhost:8081/api/` | Flask API (gunicorn) |
 
+The launcher patches the served `index.html` so the frontend calls the
+API at `http://localhost:8081/api`. Your tunnel must therefore keep
+`localhost:8081` mapped to the gunicorn port (the example above already
+does). If you want to use a different local port, set
+`LOCAL_API_PORT` in `~/.qiita-explore.env` before submitting.
+
 ---
 
 ## Caveats

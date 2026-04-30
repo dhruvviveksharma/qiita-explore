@@ -128,16 +128,34 @@ apptainer exec \
 APP_PID=$!
 
 # ------------------------------------------------------------
-# 8. Start static frontend server via Apptainer — background
+# 8. Stage a writable copy of the frontend and patch the API base
 # ------------------------------------------------------------
+# The Docker image rewrites the API meta tag to "/api" for the
+# nginx-proxied compose deploy. In SLURM we serve frontend and API on
+# different ports (different origins from the browser), so we patch the
+# meta tag to point directly at the local tunnel API port. CORS is
+# enabled on the Flask side, so cross-origin works.
+LOCAL_API_PORT="${LOCAL_API_PORT:-8081}"
+FRONTEND_STAGE="$WORKDIR/.qiita-explore-frontend"
+rm -rf "$FRONTEND_STAGE"
+mkdir -p "$FRONTEND_STAGE"
 apptainer exec \
+    --bind "$FRONTEND_STAGE:/out" \
     "$SIF_PATH" \
-    python -m http.server "$WEB_PORT" --directory /app/frontend \
+    cp -r /app/frontend/. /out/
+sed -i \
+    "s|<meta name=\"api-base\" content=\"[^\"]*\">|<meta name=\"api-base\" content=\"http://localhost:${LOCAL_API_PORT}/api\">|" \
+    "$FRONTEND_STAGE/index.html"
+
+# ------------------------------------------------------------
+# 9. Start static frontend server (host python3, serves staged copy)
+# ------------------------------------------------------------
+python3 -m http.server "$WEB_PORT" --directory "$FRONTEND_STAGE" \
     > "$WORKDIR/frontend-${SLURM_JOB_ID}.log" 2>&1 &
 WEB_PID=$!
 
 # ------------------------------------------------------------
-# 9. Trap for clean shutdown when SLURM terminates the job
+# 10. Trap for clean shutdown when SLURM terminates the job
 # ------------------------------------------------------------
 cleanup() {
     echo "Shutting down (signal received)..."
@@ -147,6 +165,6 @@ cleanup() {
 trap cleanup TERM INT EXIT
 
 # ------------------------------------------------------------
-# 10. Wait — block until both children exit (or job is killed)
+# 11. Wait — block until both children exit (or job is killed)
 # ------------------------------------------------------------
 wait "$APP_PID" "$WEB_PID"
