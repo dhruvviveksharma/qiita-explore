@@ -106,9 +106,13 @@ echo ""
 # ------------------------------------------------------------
 # 7. Start gunicorn (API server) via Apptainer — background
 # ------------------------------------------------------------
+BASE_DATA_DIR="${BASE_DATA_DIR:-/ddn_scratch/d4sharma/qiita}"
+mkdir -p "$BASE_DATA_DIR"
+
 apptainer exec \
     --bind "$STATE_DIR:/var/lib/ezredbiom" \
     --bind "$QIITA_CONFIG_FP:/etc/qiita/qiita_config.cfg:ro" \
+    --bind "${BASE_DATA_DIR:-/ddn_scratch/d4sharma/qiita}:${BASE_DATA_DIR:-/ddn_scratch/d4sharma/qiita}" \
     --env API_KEY="$API_KEY" \
     --env JWT_SECRET="$JWT_SECRET" \
     --env ADMIN_PASS="$ADMIN_PASS" \
