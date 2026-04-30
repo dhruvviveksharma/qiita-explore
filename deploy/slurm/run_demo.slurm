@@ -104,14 +104,59 @@ echo "============================================================"
 echo ""
 
 # ------------------------------------------------------------
-# 7. Start gunicorn (API server) via Apptainer — background
+# 7. SSH tunnel for DB access + patched qiita_config.cfg
+# ------------------------------------------------------------
+# Compute nodes are not in pg_hba.conf on the Qiita DB server, but the
+# login node is. We tunnel Postgres through the login node so gunicorn
+# can reach the DB. Requires passwordless SSH from compute → login node.
+DB_TUNNEL_PORT=15432
+DB_HOST=$(python3 -c "
+import configparser
+cfg = configparser.ConfigParser()
+cfg.read('$QIITA_CONFIG_FP')
+print(cfg['postgres']['host'])
+")
+DB_PORT=$(python3 -c "
+import configparser
+cfg = configparser.ConfigParser()
+cfg.read('$QIITA_CONFIG_FP')
+print(cfg['postgres']['port'])
+")
+
+echo "Opening DB tunnel: localhost:${DB_TUNNEL_PORT} -> ${DB_HOST}:${DB_PORT} via ${LOGIN_HOST}"
+ssh -N \
+    -o StrictHostKeyChecking=no \
+    -o ExitOnForwardFailure=yes \
+    -o ServerAliveInterval=30 \
+    -o ServerAliveCountMax=3 \
+    -L "${DB_TUNNEL_PORT}:${DB_HOST}:${DB_PORT}" \
+    "${USER}@${LOGIN_HOST}" &
+DB_TUNNEL_PID=$!
+sleep 3   # give the tunnel time to establish
+
+# Write a patched config pointing at the tunnel
+PATCHED_CONFIG="$STATE_DIR/qiita_config_patched.cfg"
+python3 -c "
+import configparser
+cfg = configparser.ConfigParser()
+cfg.read('$QIITA_CONFIG_FP')
+cfg['postgres']['host'] = 'localhost'
+cfg['postgres']['port'] = '$DB_TUNNEL_PORT'
+with open('$PATCHED_CONFIG', 'w') as f:
+    cfg.write(f)
+print('Patched config written:', '$PATCHED_CONFIG')
+"
+chmod 600 "$PATCHED_CONFIG"
+
+# ------------------------------------------------------------
+# 8. Start gunicorn (API server) via Apptainer — background
 # ------------------------------------------------------------
 BASE_DATA_DIR="${BASE_DATA_DIR:-/ddn_scratch/d4sharma/qiita}"
 mkdir -p "$BASE_DATA_DIR"
 
 apptainer exec \
     --bind "$STATE_DIR:/var/lib/ezredbiom" \
-    --bind "$QIITA_CONFIG_FP:/etc/qiita/qiita_config.cfg:ro" \
+    --bind "$PATCHED_CONFIG:/etc/qiita/qiita_config.cfg:ro" \
     --bind "${BASE_DATA_DIR:-/ddn_scratch/d4sharma/qiita}:${BASE_DATA_DIR:-/ddn_scratch/d4sharma/qiita}" \
     --env API_KEY="$API_KEY" \
     --env JWT_SECRET="$JWT_SECRET" \
@@ -128,7 +173,7 @@ apptainer exec \
 APP_PID=$!
 
 # ------------------------------------------------------------
-# 8. Stage a writable copy of the frontend and patch the API base
+# 9. Stage a writable copy of the frontend and patch the API base
 # ------------------------------------------------------------
 # The Docker image rewrites the API meta tag to "/api" for the
 # nginx-proxied compose deploy. In SLURM we serve frontend and API on
@@ -148,23 +193,23 @@ sed -i \
     "$FRONTEND_STAGE/index.html"
 
 # ------------------------------------------------------------
-# 9. Start static frontend server (host python3, serves staged copy)
+# 10. Start static frontend server (host python3, serves staged copy)
 # ------------------------------------------------------------
 python3 -m http.server "$WEB_PORT" --directory "$FRONTEND_STAGE" \
     > "$WORKDIR/frontend-${SLURM_JOB_ID}.log" 2>&1 &
 WEB_PID=$!
 
 # ------------------------------------------------------------
-# 10. Trap for clean shutdown when SLURM terminates the job
+# 11. Trap for clean shutdown when SLURM terminates the job
 # ------------------------------------------------------------
 cleanup() {
     echo "Shutting down (signal received)..."
-    kill -TERM "$APP_PID" "$WEB_PID" 2>/dev/null
+    kill -TERM "$APP_PID" "$WEB_PID" "$DB_TUNNEL_PID" 2>/dev/null
     wait "$APP_PID" "$WEB_PID" 2>/dev/null
 }
 trap cleanup TERM INT EXIT
 
 # ------------------------------------------------------------
-# 11. Wait — block until both children exit (or job is killed)
+# 12. Wait — block until both children exit (or job is killed)
 # ------------------------------------------------------------
 wait "$APP_PID" "$WEB_PID"
