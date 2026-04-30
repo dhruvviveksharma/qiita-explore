@@ -1,11 +1,15 @@
+bcrypt
 biom-format
+click
 Flask==2.2.5
 Flask-Cors==3.0.10
 gitpython
 gunicorn>=21,<23
+h5py
 humanize
 httpx
 invoke
+iteration_utilities
 joblib
 markdown2
 matplotlib
@@ -32,6 +36,8 @@ requests
 scikit-bio
 scipy
 seaborn
+six
 statsmodels
 toml
+tornado
 tqdm
