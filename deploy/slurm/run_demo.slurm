@@ -118,6 +118,7 @@ apptainer exec \
     --env ADMIN_PASS="$ADMIN_PASS" \
     --env QIITA_CONFIG_FP=/etc/qiita/qiita_config.cfg \
     --env QIITA_EXPERIMENT_DB_PATH=/var/lib/ezredbiom/projects.db \
+    --env PYTHONPATH=/app \
     "$SIF_PATH" \
     gunicorn -c /app/gunicorn_conf.py \
              --bind "0.0.0.0:${APP_PORT}" \

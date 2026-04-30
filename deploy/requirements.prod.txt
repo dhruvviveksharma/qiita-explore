@@ -3,6 +3,7 @@ Flask==2.2.5
 Flask-Cors==3.0.10
 gitpython
 gunicorn>=21,<23
+humanize
 httpx
 invoke
 joblib
